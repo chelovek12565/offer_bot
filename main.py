@@ -97,7 +97,8 @@ async def adm_red(message: Message):
 
 @dp.message(F.text == "/adm_req")
 async def adm_red(message: Message):
-    print(message.chat.id, message.from_user.username)
+    await bot.send_message(chat_id=ADMIN_CHAT_IDS[0], text=f"Новый запрос в админы: username - {message.from_user.username}"
+                                                     f", user_id - {message.from_user.id}")
 
 
 @dp.message(F.content_type.in_([CT.PHOTO, CT.VIDEO, CT.DOCUMENT]))
