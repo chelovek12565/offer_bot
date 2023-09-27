@@ -1,4 +1,3 @@
-import json
 import os
 
 from aiogram import Bot, Dispatcher, F, BaseMiddleware, Router
@@ -9,10 +8,12 @@ from data.__all_models import *
 from data import db_session
 from db_func import *
 import asyncio
-import aioschedule
 from pip._internal import commands
 
-db_session.global_init("data/main.db")
+PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+
+
+db_session.global_init(f"{PROJECT_PATH}\\data\\main.db")
 ADMIN_CHAT_IDS =[
     1257309456,
     1709505766,
@@ -158,7 +159,7 @@ async def message_handler(message: Message) -> None:
 def delete_post(db_sess, post_db):
     "you must commit db_sess outside the function"
     db_sess.delete(post_db)
-    os.remove(f"data/posts/{post_db.id}.json")
+    os.remove(f"{PROJECT_PATH}\\data\\posts\\{post_db.id}.json")
 
 
 @router.callback_query()
