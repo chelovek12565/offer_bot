@@ -246,3 +246,4 @@ cython_debug/
 /offer_bot.iml
 /somedata
 /data/main.db
+/data/posts/

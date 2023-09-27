@@ -20,6 +20,7 @@ ADMIN_CHAT_IDS =[
 ]
 N_OF_DECISION = 2
 CHANNEL_ID = "@tyagasashinoishtangi"
+# CHANNEL_ID = 1257309456
 
 with open("somedata", "rt") as f:
     API_TOKEN = f.read()
@@ -40,10 +41,8 @@ def get_document_id(message: Message) -> str:
     return message.document.file_id
 
 
-
-
-
-async def send_post_to_adm(bot: Bot, post_id):
+async def send_post_to_adm(bot: Bot, post_db: Post):
+    post_id = post_db.id
     await send_post(bot, post_id, ADMIN_CHAT_IDS)
 
     inline_keyboard = InlineKeyboardMarkup(row_width=2, inline_keyboard=
@@ -51,7 +50,7 @@ async def send_post_to_adm(bot: Bot, post_id):
       InlineKeyboardButton(text="❌", callback_data=f"disapprove_post {post_id}")]])
 
     for chat_id in ADMIN_CHAT_IDS:
-        await bot.send_message(chat_id=chat_id, text="Принять пост?", reply_markup=inline_keyboard)
+        await bot.send_message(chat_id=chat_id, text=f"Принять пост от @{post_db.username}?", reply_markup=inline_keyboard)
 
 
 async def publish_post(bot: Bot, post_id):
@@ -141,13 +140,17 @@ async def handle_albums(message: Message, album: list[Message]=None):
     elif message.document:
         post_id = create_post(message, media={"document": [message.document.file_id]}, text=message.caption)
         await bot.send_message(chat_id=message.from_user.id, text=SENT_TEXT)
-    await send_post_to_adm(bot, post_id)
+    db_sess = db_session.create_session()
+    post_db = db_sess.query(Post).filter(Post.id == post_id).first()
+    await send_post_to_adm(bot, post_db)
 
 
 @dp.message(F.text)
 async def message_handler(message: Message) -> None:
     post_id = create_post(message, media=None, text=message.text)
-    await send_post_to_adm(bot, post_id)
+    db_sess = db_session.create_session()
+    post_db = db_sess.query(Post).filter(Post.id == post_id).first()
+    await send_post_to_adm(bot, post_db)
     await bot.send_message(chat_id=message.from_user.id, text=SENT_TEXT)
 
 
