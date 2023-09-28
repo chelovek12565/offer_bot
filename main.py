@@ -17,9 +17,11 @@ db_session.global_init(f"{PROJECT_PATH}\\data\\main.db")
 ADMIN_CHAT_IDS =[
     1257309456,
     1709505766,
-    787864583
+    787864583,
+    1659902366,
+    1392981661
 ]
-N_OF_DECISION = 2
+N_OF_DECISION = 3
 CHANNEL_ID = "@tyagasashinoishtangi"
 # CHANNEL_ID = 1257309456
 
