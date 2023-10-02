@@ -39,7 +39,7 @@ def create_post(message: Message, media=None, text=None):
     return post_id
 
 
-async def send_post(bot: Bot, post_id: int, chat_ids: list[int | str]):
+async def send_post(bot: Bot, post_id: int, chat_ids):
     print("asdasd")
     with open(f"{PROJECT_PATH}\\data\\posts\\{post_id}.json", "rt") as f:
         data = json.loads(f.read())
