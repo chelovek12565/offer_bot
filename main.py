@@ -18,7 +18,7 @@ db_session.global_init(f"{PROJECT_PATH}\\data\\main.db")
 
 N_OF_DECISION = int(os.getenv("N_OF_DECISION"))
 CHANNEL_ID = os.getenv("CHANNEL_ID")
-ADMIN_CHAT_IDS = list(map(lambda x: int(x), os.getenv("admin_chat_ids").split(",")))
+ADMIN_CHAT_IDS = list(map(lambda x: int(x), os.getenv("ADMIN_CHAT_IDS").split(",")))
 API_TOKEN = os.getenv("SECRET_TG_API_TOKEN")
 
 bot = Bot(token=API_TOKEN)
