@@ -8,7 +8,6 @@ from data.__all_models import *
 from data import db_session
 from db_func import *
 import asyncio
-from pip._internal import commands
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -20,13 +19,15 @@ N_OF_DECISION = int(os.getenv("N_OF_DECISION"))
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 ADMIN_CHAT_IDS = list(map(lambda x: int(x), os.getenv("ADMIN_CHAT_IDS").split(",")))
 API_TOKEN = os.getenv("SECRET_TG_API_TOKEN")
+ADMIN_TAGS = os.getenv("ADMIN_TAGS").split()
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 router = Router(name=__name__)
 dp.include_router(router)
 
-SENT_TEXT = "Пост отправлен. Ждите обработки админов. Если пост долгое время не выкладывается, значит его, скорее всего, не приняли админы"
+SENT_TEXT = "Пост отправлен. Ждите обработки админов. Если пост долгое время не выкладывается," \
+            " значит его, скорее всего, не приняли админы"
 
 
 def get_image_id(message: Message) -> str:
@@ -86,9 +87,39 @@ class AlbumMiddleware(BaseMiddleware):
 dp.message.middleware(AlbumMiddleware())
 
 
+@dp.message(F.text == "/admin_tags")
+async def admin_tags(message : Message):
+    text = "Вот полный список админов:\n" + "\n".join(ADMIN_TAGS)
+    await bot.send_message(chat_id=message.chat.id, text=text)
+
+
 @dp.message(F.text == "/start")
 async def adm_red(message: Message):
     await bot.send_message(chat_id=message.chat.id, text="Приветствуем в предложке Тяжести Трицепса! Просто отправьте пост который хотите предложить")
+
+
+@dp.message(F.text.startswith("/ask_admin"))
+async def ask_admin(message: Message):
+    ask_text = message.text[10:]
+    if not ask_text.strip():
+        await message.reply(text="Вы пытаетесь отправить пустое сообщение. Пожалуйста, вводите команду в формате:\n"
+                                 "/ask_admin [ваш вопрос]")
+        return
+    inline_keyboard_buttons = []
+    db_sess = db_session.create_session()
+    question = Question()
+    question.username = message.from_user.username
+    question.user_id = message.from_user.id
+    question.text = ask_text
+    db_sess.add(question)
+    db_sess.commit()
+    for adm in ADMIN_TAGS:
+        inline_keyboard_buttons.append([InlineKeyboardButton(text=f"{adm}",
+                                                             callback_data=f"ask_adm {adm} "
+                                                                           f"{question.id}")])
+    inline_keyboard = InlineKeyboardMarkup(row_width=2, inline_keyboard=inline_keyboard_buttons)
+    await bot.send_message(chat_id=message.chat.id, text="Выберите админа, которому хотите задать вопрос",
+                           reply_markup=inline_keyboard)
 
 
 @dp.message(F.text == "/adm_req")
@@ -144,6 +175,17 @@ async def handle_albums(message: Message, album: list[Message]=None):
 
 @dp.message(F.text)
 async def message_handler(message: Message) -> None:
+    try:
+        repl_msg_id = message.reply_to_message.message_id
+        if not message.from_user.id in ADMIN_CHAT_IDS or not message.reply_to_message.text.startswith("Вам задали анонимное сообщение:"):
+            return
+        db_sess = db_session.create_session()
+        question = db_sess.query(Question).where(Question.message_id == repl_msg_id).first()
+        await bot.send_message(chat_id=question.user_id, text=f"Ответ на ваш вопрос для {question.adm_username}:\n"
+                                                              f"{message.text}")
+        return
+    except AttributeError as e:
+        pass
     post_id = create_post(message, media=None, text=message.text)
     db_sess = db_session.create_session()
     post_db = db_sess.query(Post).filter(Post.id == post_id).first()
@@ -161,27 +203,47 @@ def delete_post(db_sess, post_db):
 async def callback_query_keyboard(callback_query: CallbackQuery):
     await callback_query.message.edit_reply_markup(reply_markup=None)
     data = callback_query.data
-    post_id = data.split()[-1]
-    db_sess = db_session.create_session()
-    post_db = db_sess.query(Post).filter(Post.id == post_id).first()
-    if not post_db:
-        await bot.send_message(chat_id=callback_query.from_user.id, text="Похоже такого поста нет в предложке, значит"
-                                                                         " он либо уже отвергнут админами, либо "
-                                                                         "опубликован. Проверьте канал")
-        return
-    if data.startswith("approve"):
-        if post_db.adm_approved + 1 >= N_OF_DECISION:
-            await publish_post(bot, post_id)
-            delete_post(db_sess, post_db)
-        else:
-            post_db.adm_approved += 1
-    elif data.startswith("disapprove"):
-        if post_db.adm_disapproved + 1 >= N_OF_DECISION:
-            delete_post(db_sess, post_db)
-        else:
-            post_db.adm_disapproved += 1
-            db_sess.merge(post_db)
-    db_sess.commit()
-
+    if data.startswith("approve") or data.startswith("disapprove"):
+        post_id = data.split()[-1]
+        db_sess = db_session.create_session()
+        post_db = db_sess.query(Post).filter(Post.id == post_id).first()
+        if not post_db:
+            await bot.send_message(chat_id=callback_query.from_user.id, text="Похоже такого поста нет в предложке, "
+                                                                             "значит"
+                                                                             " он либо уже отвергнут админами, либо "
+                                                                             "опубликован. Проверьте канал")
+            return
+        if data.startswith("approve"):
+            if post_db.adm_approved + 1 >= N_OF_DECISION:
+                await publish_post(bot, post_id)
+                delete_post(db_sess, post_db)
+            else:
+                post_db.adm_approved += 1
+        elif data.startswith("disapprove"):
+            if post_db.adm_disapproved + 1 >= N_OF_DECISION:
+                delete_post(db_sess, post_db)
+            else:
+                post_db.adm_disapproved += 1
+                db_sess.merge(post_db)
+        db_sess.commit()
+    elif data.startswith("ask_adm"):
+        asked_adm = data.split()[1]
+        question_id = data.split()[2]
+        db_sess = db_session.create_session()
+        question = db_sess.query(Question).where(Question.id == question_id).first()
+        text = question.text
+        msg = await bot.send_message(chat_id=ADMIN_CHAT_IDS[ADMIN_TAGS.index(asked_adm)],
+                                     text="Вам задали анонимное сообщение:\n" + text +
+                                                                   "\n Ответьте на это сообщение чтобы отправить "
+                                                                   "ответ пользователю (отвечайте текстом)")
+        # question = Question()
+        question.adm_username = asked_adm
+        # question.username = username
+        # question.user_id = user_id
+        question.message_id = msg.message_id
+        # db_sess = db_session.create_session()
+        # db_sess.add(question)
+        db_sess.merge(question)
+        db_sess.commit()
 
 dp.run_polling(bot)
