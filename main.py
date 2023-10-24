@@ -9,11 +9,11 @@ from data import db_session
 from db_func import *
 import asyncio
 
-PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+# PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 load_dotenv()
 
-db_session.global_init(f"{PROJECT_PATH}\\data\\main.db")
+db_session.global_init("./data/main.db")
 
 N_OF_DECISION = int(os.getenv("N_OF_DECISION"))
 CHANNEL_ID = os.getenv("CHANNEL_ID")
@@ -196,7 +196,7 @@ async def message_handler(message: Message) -> None:
 def delete_post(db_sess, post_db):
     "you must commit db_sess outside the function"
     db_sess.delete(post_db)
-    os.remove(f"{PROJECT_PATH}\\data\\posts\\{post_db.id}.json")
+    os.remove(f"./data/posts/{post_db.id}.json")
 
 
 @router.callback_query()
