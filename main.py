@@ -13,7 +13,7 @@ import asyncio
 
 load_dotenv()
 
-db_session.global_init("./data/main.db")
+db_session.global_init("data/main.db")
 
 N_OF_DECISION = int(os.getenv("N_OF_DECISION"))
 CHANNEL_ID = os.getenv("CHANNEL_ID")
@@ -196,7 +196,7 @@ async def message_handler(message: Message) -> None:
 def delete_post(db_sess, post_db):
     "you must commit db_sess outside the function"
     db_sess.delete(post_db)
-    os.remove(f"./data/posts/{post_db.id}.json")
+    os.remove(f"data/posts/{post_db.id}.json")
 
 
 @router.callback_query()

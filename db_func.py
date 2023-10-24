@@ -33,7 +33,7 @@ def create_post(message: Message, media=None, text=None):
     db_sess.commit()
     post_id = post.id
 
-    with io.open(f"./data/posts/{post_id}.json", "wt", encoding="utf-8") as f:
+    with io.open(f"data/posts/{post_id}.json", "wt", encoding="utf-8") as f:
         f.write(json.dumps(out_dict, ensure_ascii=False))
 
     return post_id
@@ -41,7 +41,7 @@ def create_post(message: Message, media=None, text=None):
 
 async def send_post(bot: Bot, post_id: int, chat_ids):
     print("asdasd")
-    with open(f"./data/posts/{post_id}.json", "rt") as f:
+    with open(f"data/posts/{post_id}.json", "rt") as f:
         data = json.loads(f.read())
 
     if "media" in list(data.keys()):
