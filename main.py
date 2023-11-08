@@ -29,6 +29,10 @@ dp.include_router(router)
 SENT_TEXT = "Пост отправлен. Ждите обработки админов. Если пост долгое время не выкладывается," \
             " значит его, скорее всего, не приняли админы"
 
+# @dp.channel_post()
+# def test(message: Message):
+#     print(message.chat.id)
+
 
 def get_image_id(message: Message) -> str:
     return message.photo[-1].file_id
@@ -95,6 +99,7 @@ async def admin_tags(message : Message):
 
 @dp.message(F.text == "/start")
 async def adm_red(message: Message):
+    # await bot.send_message(chat_id=CHANNEL_ID, text=".")
     await bot.send_message(chat_id=message.chat.id, text="Приветствуем в предложке Тяжести Трицепса! Просто отправьте пост который хотите предложить")
 
 
